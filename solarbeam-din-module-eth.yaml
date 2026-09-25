@@ -1,0 +1,21 @@
+substitutions:
+  name: solarbeam-din-module
+  friendly_name: Solarbeam DIN Module
+  version: 0.2.0
+  failsafe_timeout: 30s
+
+packages:
+  base: !include common/base.yaml
+
+# Wi-Fi and Ethernet cannot be enabled in the same build, hence two variants.
+wifi: !remove
+captive_portal: !remove
+
+ethernet:
+  type: LAN8720
+  mdc_pin: GPIO23
+  mdio_pin: GPIO18
+  clk:
+    pin: GPIO17
+    mode: CLK_OUT
+  phy_addr: 0

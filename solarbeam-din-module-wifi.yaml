@@ -1,0 +1,8 @@
+substitutions:
+  name: solarbeam-din-module
+  friendly_name: Solarbeam DIN Module
+  version: 0.2.0
+  failsafe_timeout: 30s
+
+packages:
+  base: !include common/base.yaml

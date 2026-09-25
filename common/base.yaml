@@ -1,0 +1,67 @@
+# The vendor config (RemoteQTH / OK1HRA, regulation by OK1BT) is used as-is,
+# pinned to a commit, and only patched here. Bump the ref deliberately and
+# re-check that every id patched below still exists upstream.
+packages:
+  upstream: github://ok1hra/eth-din-dev-kit/esphome-solarbeam-version-linear-regulation.yaml@f5f2bbc1d84ce1b73ef14262eecc4d25bb09d2dc
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: true
+  project:
+    name: infigy.solarbeam-din-module
+    version: ${version}
+
+# Upload through the web UI, as the vendor documents; newer ESPHome no longer
+# enables it by default.
+ota:
+  - platform: web_server
+
+# Upstream regulates on the device: a 2 s SOC loop and the PID thermostat both
+# republish POWER OUT (the PID writes 0 on every reading even when off), so
+# any value set remotely is overwritten within seconds. The controller
+# regulates instead, and POWER OUT becomes the remote command.
+interval: !remove
+climate: !remove
+
+output:
+  - id: !remove pid_output_temp
+
+# Inputs of the removed SOC loop; left in, they would be dead controls in the UI.
+number:
+  - id: !remove soc_value
+  - id: !remove soc_threshold
+  - id: !remove soc_keep
+  - id: !remove soc_spread
+  - id: !extend total_power
+    set_action:
+      - script.execute: failsafe_timer
+
+switch:
+  - id: !remove pid_temp_enable
+  - id: !remove reg_soc_enable
+  - id: !remove soc_flag
+
+# Upstream hard-codes the address of its author's DS18B20.
+sensor:
+  - id: !remove soc_sensor
+  - id: !remove temp
+  - platform: dallas_temp
+    id: temp
+    name: TEMP
+    update_interval: 5s
+
+# Restarted by every POWER OUT write; if the controller goes quiet for the
+# timeout, the heater is switched off.
+script:
+  - id: failsafe_timer
+    mode: restart
+    then:
+      - delay: ${failsafe_timeout}
+      - lambda: id(total_power).publish_state(0);
+
+binary_sensor:
+  - platform: template
+    name: FAILSAFE
+    entity_category: diagnostic
+    lambda: return !id(failsafe_timer).is_running();
